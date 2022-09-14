@@ -2,6 +2,16 @@
 
 This is a containerised exporter written in python to collect metrics for Cluster, Hosts, VMs and Storage Containers.
 
+TLDR
+
+Go in the **build** directory, copy `.env.example` in `.env`, change variables `PRISM`, `PRISM_USERNAME` and `PRISM_SECRET`, and run this:
+
+```sh
+docker rm nutanix-exporter-1; docker build -t nutanix-prometheus-exporter . &&  docker run --name nutanix-exporter-1 -p 8000:8000 nutanix-prometheus-exporter
+```
+
+It can take some minutes to have some logs.
+
 ## Building the container
 
 Available environment variables are listed in the `.env.example` file in the **build** directory.
