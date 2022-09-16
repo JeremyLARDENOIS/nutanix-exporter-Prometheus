@@ -4,8 +4,8 @@ from process_request import process_request
 import json
 import os
 
-def prism_get_entities(api_server, api_server_endpoint, username, secret, secure=False):
-    """Retrieves data entities from the Prism Element endpoint chosen
+def prism_get(api_server, api_server_endpoint, username, secret, secure=False):
+    """Retrieves data from the Prism Element endpoint chosen
     Args:
         api_server: The IP or FQDN of Prism.
         username: The Prism user name.
@@ -34,7 +34,7 @@ def prism_get_entities(api_server, api_server_endpoint, username, secret, secure
 
     # deal with the result/response
     if resp.ok:
-        return json.loads(resp.content)["entities"]
+        return json.loads(resp.content)
     else:
         print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] Request failed! Status code: {resp.status_code}{bcolors.RESET}")
         print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] reason: {resp.reason}{bcolors.RESET}")

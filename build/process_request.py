@@ -64,6 +64,8 @@ def process_request(url, method, user, password, headers, payload=None, secure=F
                     verify=secure,
                     timeout=timeout
                 )
+            else:
+                raise Exception("Method not handled")
 
         except requests.exceptions.HTTPError as error_code:
             print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] Http Error! Status code: {response.status_code}{bcolors.RESET}")

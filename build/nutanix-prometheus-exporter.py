@@ -1,5 +1,5 @@
-import os,requests,json,time
-from prometheus_client import start_http_server, Gauge, Enum, Info
+import os
+from prometheus_client import start_http_server
 from datetime import datetime
 from dotenv import load_dotenv
 from nutanixMetrics import NutanixMetrics
@@ -26,10 +26,6 @@ def main():
         user = os.getenv('PRISM_USERNAME'),
         pwd = os.getenv('PRISM_SECRET'),
         prism_secure=bool(os.getenv("PRISM_SECURE", False)),
-        vm_metrics=bool(os.getenv('VM_METRICS', True)),
-        host_metrics=bool(os.getenv('HOST_METRICS', True)),
-        cluster_metrics=bool(os.getenv('CLUSTER_METRICS', True)),
-        storage_containers_metrics=bool(os.getenv('STORAGE_CONTAINERS_METRICS', True))
     )
     
     print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Starting http server on port {exporter_port}{bcolors.RESET}")

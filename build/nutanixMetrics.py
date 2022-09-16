@@ -1,8 +1,11 @@
+from email import header
+import json
 import time
 from datetime import datetime
 from bcolors import bcolors
-from prismGetData import prism_get_entities
+from prismGetData import prism_get
 from prometheus_client import start_http_server, Gauge, Enum, Info
+from process_request import process_request
 
 class NutanixMetrics:
     """
@@ -21,7 +24,7 @@ class NutanixMetrics:
         self.cluster_metrics = cluster_metrics
         self.storage_containers_metrics = storage_containers_metrics
         
-        self.main_fetch()
+        self._init_fetch()
             
     def run_metrics_loop(self):
         """Metrics fetching loop"""
@@ -31,45 +34,49 @@ class NutanixMetrics:
             print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Waiting for {self.polling_interval_seconds} seconds...{bcolors.RESET}")
             time.sleep(self.polling_interval_seconds)
 
-    def main_fetch(self):
-        '''Get the main value, needed to use self.fetch()'''
-        if self.cluster_metrics:
-            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [INFO] Initializing metrics for clusters...{bcolors.RESET}")
-            
-            api_server_endpoint = "/PrismGateway/services/rest/v2.0/clusters/"
-            cluster_details = prism_get_entities(
-                api_server=self.prism,
-                api_server_endpoint=api_server_endpoint,
-                username=self.user,
-                secret=self.pwd,
-                secure=self.prism_secure)[0]
-            
-            for key,value in cluster_details['stats'].items():
-                #making sure we are compliant with the data model (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels)
-                key_string = f"NutanixClusters_stats_{key}"
-                key_string = key_string.replace(".","_")
-                key_string = key_string.replace("-","_")
-                setattr(self, key_string, Gauge(key_string, key_string, ['cluster']))
-            for key,value in cluster_details['usage_stats'].items():
-                #making sure we are compliant with the data model (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels)
-                key_string = f"NutanixClusters_usage_stats_{key}"
-                key_string = key_string.replace(".","_")
-                key_string = key_string.replace("-","_")
-                setattr(self, key_string, Gauge(key_string, key_string, ['cluster']))
-            
-            #self.lts = Enum("is_lts", "AOS Long Term Support", ['cluster'], states=['True', 'False'])
-            setattr(self, 'NutanixClusters_info', Info('is_lts', 'Long Term Support AOS true/false', ['cluster']))
+    def _init_fetch(self):
+        '''Get the main value, needed to use before self.fetch()'''
+
+        print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [INFO] Initializing metrics for clusters...{bcolors.RESET}")
+        
+        api_server_endpoint = "/PrismGateway/services/rest/v2.0/clusters/"
+        cluster_details = prism_get(
+            api_server=self.prism,
+            api_server_endpoint=api_server_endpoint,
+            username=self.user,
+            secret=self.pwd,
+            secure=self.prism_secure)["entities"][0]
+        
+        for key,value in cluster_details['stats'].items():
+            #making sure we are compliant with the data model (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels)
+            key_string = f"NutanixClusters_stats_{key}"
+            key_string = key_string.replace(".","_")
+            key_string = key_string.replace("-","_")
+            setattr(self, key_string, Gauge(key_string, key_string, ['cluster']))
+        for key,value in cluster_details['usage_stats'].items():
+            #making sure we are compliant with the data model (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels)
+            key_string = f"NutanixClusters_usage_stats_{key}"
+            key_string = key_string.replace(".","_")
+            key_string = key_string.replace("-","_")
+            setattr(self, key_string, Gauge(key_string, key_string, ['cluster']))
+        
+        #self.lts = Enum("is_lts", "AOS Long Term Support", ['cluster'], states=['True', 'False'])
+        setattr(self, 'NutanixClusters_info', Info('is_lts', 'Long Term Support AOS true/false', ['cluster']))
 
         if self.vm_metrics:
             print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [INFO] Initializing metrics for virtual machines...{bcolors.RESET}")
-            # vm_details = prism_get_vm(api_server=self.prism,username=self.user,secret=self.pwd,secure=self.prism_secure)
+
+            # Prepare for GET Vms counts 
+            key_string = "NutanixVms_count"
+            self.NutanixVms_count = Gauge(key_string, key_string)     
+
             api_server_endpoint = "/PrismGateway/services/rest/v1/vms"
-            vm_details = prism_get_entities(
+            vm_details = prism_get(
                 api_server=self.prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
-                secure=self.prism_secure)
+                secure=self.prism_secure)["entities"]
             for key,value in vm_details[0]['stats'].items():
                 #making sure we are compliant with the data model (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels)
                 key_string = f"NutanixVms_stats_{key}"
@@ -86,12 +93,12 @@ class NutanixMetrics:
         if self.host_metrics:
             print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [INFO] Initializing metrics for Hosts...{bcolors.RESET}")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/hosts"
-            host_details = prism_get_entities(
+            host_details = prism_get(
                 api_server=self.prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
-                secure=self.prism_secure)
+                secure=self.prism_secure)["entities"]
             for key,value in host_details[0]['stats'].items():
                 #making sure we are compliant with the data model (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels)
                 key_string = f"NutanixHosts_stats_{key}"
@@ -108,12 +115,12 @@ class NutanixMetrics:
         if self.storage_containers_metrics:
             print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [INFO] Initializing metrics for storage containers...{bcolors.RESET}")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/storage_containers/"
-            storage_containers_details = prism_get_entities(
+            storage_containers_details = prism_get(
                 api_server=self.prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
-                secure=self.prism_secure)
+                secure=self.prism_secure)["entities"]
             for key,value in storage_containers_details[0]['stats'].items():
                 #making sure we are compliant with the data model (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels)
                 key_string = f"NutanixStorageContainers_stats_{key}"
@@ -127,6 +134,10 @@ class NutanixMetrics:
                 key_string = key_string.replace("-","_")
                 setattr(self, key_string, Gauge(key_string, key_string, ['storage_container']))
 
+        
+        if True:
+            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [INFO] Initializing metrics for VMs..{bcolors.RESET}")
+
 
     def fetch(self):
         """
@@ -137,13 +148,12 @@ class NutanixMetrics:
         if self.cluster_metrics:
             print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Collecting clusters metrics{bcolors.RESET}")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/clusters/"
-            cluster_details = prism_get_entities(
+            cluster_details = prism_get(
                 api_server=self.prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
-                secure=self.prism_secure)[0]
-            # cluster_uuid, cluster_details = prism_get_cluster(api_server=self.prism,username=self.user,secret=self.pwd,secure=self.prism_secure)
+                secure=self.prism_secure)["entities"][0]
         
             for key, value in cluster_details['stats'].items():
                 #making sure we are compliant with the data model (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels)
@@ -162,13 +172,39 @@ class NutanixMetrics:
             self.NutanixClusters_info.labels(cluster=cluster_details['name']).info({'is_lts': str(cluster_details['is_lts'])})
         
         if self.vm_metrics:
+            # TODO: Refactor this
+            # Get the number of VM
+            url = f"https://{self.prism}:{self.app_port}/api/nutanix/v3/vms/list"
+            headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+            resp = process_request(url=url, method="POST", user=self.user, password=self.pwd, payload={"kind":"vm"}, headers=headers, secure=self.prism_secure)
+            if resp.ok:
+                resp_json = json.loads(resp.content)
+            else:
+                raise
+            total_vm = resp_json["metadata"]["total_matches"]
+            self.NutanixVms_count.set(total_vm)
+            # # Get the number of vms from API V2, only prism element
+            # api_server_endpoint = "/PrismGateway/services/rest/v2.0/vms/"
+            # vms_details = prism_get(
+            #     api_server=self.prism,
+            #     api_server_endpoint=api_server_endpoint,
+            #     username=self.user,
+            #     secret=self.pwd,
+            #     secure=self.prism_secure)["entities"]
+            # count = len(vms_details)
+            # key_string = "NutanixVms_count"
+            # self.NutanixVms_count.set(count)
+
             api_server_endpoint = "/PrismGateway/services/rest/v1/vms"
-            vm_details = prism_get_entities(
+            vm_details = prism_get(
                 api_server=self.prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
-                secure=self.prism_secure)
+                secure=self.prism_secure)["entities"]
             # vm_details = prism_get_vm(api_server=self.prism,username=self.user,secret=self.pwd,secure=self.prism_secure)
             print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Collecting vm metrics for {bcolors.RESET}")
             for entity in vm_details:
@@ -187,12 +223,12 @@ class NutanixMetrics:
                     
         if self.host_metrics:
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/hosts"
-            host_details = prism_get_entities(
+            host_details = prism_get(
                 api_server=self.prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
-                secure=self.prism_secure)
+                secure=self.prism_secure)["entities"]
             print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Collecting Host metrics for {bcolors.RESET}")
             for entity in host_details:
                 for key, value in entity['stats'].items():
@@ -212,12 +248,12 @@ class NutanixMetrics:
         if self.storage_containers_metrics:
             print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Collecting storage containers metrics{bcolors.RESET}")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/storage_containers/"
-            storage_containers_details = prism_get_entities(
+            storage_containers_details = prism_get(
                 api_server=self.prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
-                secure=self.prism_secure)
+                secure=self.prism_secure)["entities"]
             for container in storage_containers_details:
                 for key, value in container['stats'].items():
                     #making sure we are compliant with the data model (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels)
