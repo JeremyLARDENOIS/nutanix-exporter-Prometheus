@@ -1,10 +1,9 @@
-from email import header
 import json
 import time
 from datetime import datetime
 from bcolors import bcolors
 from prismGetData import prism_get
-from prometheus_client import start_http_server, Gauge, Enum, Info
+from prometheus_client import start_http_server, Gauge, Info
 from process_request import process_request
 
 class NutanixMetrics:
@@ -23,7 +22,12 @@ class NutanixMetrics:
         self.host_metrics = host_metrics
         self.cluster_metrics = cluster_metrics
         self.storage_containers_metrics = storage_containers_metrics
-        
+        self.headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        self.hosts = []
+
         self._init_fetch()
             
     def run_metrics_loop(self):
@@ -92,6 +96,11 @@ class NutanixMetrics:
 
         if self.host_metrics:
             print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [INFO] Initializing metrics for Hosts...{bcolors.RESET}")
+
+            # Get hostnames on api v3
+            key_string="NutanixHosts_count_vms"
+            self.NutanixHost_vms_count = Gauge(key_string, key_string, ['host'])
+
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/hosts"
             host_details = prism_get(
                 api_server=self.prism,
@@ -134,11 +143,6 @@ class NutanixMetrics:
                 key_string = key_string.replace("-","_")
                 setattr(self, key_string, Gauge(key_string, key_string, ['storage_container']))
 
-        
-        if True:
-            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [INFO] Initializing metrics for VMs..{bcolors.RESET}")
-
-
     def fetch(self):
         """
         Get metrics from application and refresh Prometheus metrics with
@@ -175,28 +179,13 @@ class NutanixMetrics:
             # TODO: Refactor this
             # Get the number of VM
             url = f"https://{self.prism}:{self.app_port}/api/nutanix/v3/vms/list"
-            headers = {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-            resp = process_request(url=url, method="POST", user=self.user, password=self.pwd, payload={"kind":"vm"}, headers=headers, secure=self.prism_secure)
+            resp = process_request(url=url, method="POST", user=self.user, password=self.pwd, payload={"kind":"vm"}, headers=self.headers, secure=self.prism_secure)
             if resp.ok:
                 resp_json = json.loads(resp.content)
             else:
                 raise
             total_vm = resp_json["metadata"]["total_matches"]
             self.NutanixVms_count.set(total_vm)
-            # # Get the number of vms from API V2, only prism element
-            # api_server_endpoint = "/PrismGateway/services/rest/v2.0/vms/"
-            # vms_details = prism_get(
-            #     api_server=self.prism,
-            #     api_server_endpoint=api_server_endpoint,
-            #     username=self.user,
-            #     secret=self.pwd,
-            #     secure=self.prism_secure)["entities"]
-            # count = len(vms_details)
-            # key_string = "NutanixVms_count"
-            # self.NutanixVms_count.set(count)
 
             api_server_endpoint = "/PrismGateway/services/rest/v1/vms"
             vm_details = prism_get(
@@ -222,6 +211,22 @@ class NutanixMetrics:
                     self.__dict__[key_string].labels(vm=entity['vmName']).set(value)
                     
         if self.host_metrics:
+            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Collecting Host metrics for {bcolors.RESET}")
+
+            # GET on API V3
+            url = f"https://{self.prism}:{self.app_port}/api/nutanix/v3/hosts/list"
+            resp = process_request(url=url, method="POST", user=self.user, password=self.pwd, payload={}, headers=self.headers, secure=self.prism_secure)
+            if resp.ok:
+                resp_json = json.loads(resp.content)
+                for host in resp_json["entities"]:
+                    name = host["status"].get("name", None)
+                    if name:
+                        # Look for the number of Vms per host
+                        value = host["status"]["resources"]["hypervisor"]["num_vms"]
+                        self.NutanixHost_vms_count.labels(host=name).set(value)
+            else:
+                raise
+
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/hosts"
             host_details = prism_get(
                 api_server=self.prism,
@@ -229,7 +234,7 @@ class NutanixMetrics:
                 username=self.user,
                 secret=self.pwd,
                 secure=self.prism_secure)["entities"]
-            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Collecting Host metrics for {bcolors.RESET}")
+            
             for entity in host_details:
                 for key, value in entity['stats'].items():
                     #making sure we are compliant with the data model (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels)
@@ -243,7 +248,6 @@ class NutanixMetrics:
                     key_string = key_string.replace(".","_")
                     key_string = key_string.replace("-","_")
                     self.__dict__[key_string].labels(host=entity['name']).set(value)
-                    
 
         if self.storage_containers_metrics:
             print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Collecting storage containers metrics{bcolors.RESET}")

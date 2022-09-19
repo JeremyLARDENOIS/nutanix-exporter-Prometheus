@@ -28,7 +28,7 @@ def main():
         prism_secure=bool(os.getenv("PRISM_SECURE", False)),
     )
     
-    print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Starting http server on port {exporter_port}{bcolors.RESET}")
+    print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Starting http server on http://localhost:{exporter_port}{bcolors.RESET}")
     start_http_server(exporter_port)
     nutanix_metrics.run_metrics_loop() # Is there a way to close this gracefully?
 
