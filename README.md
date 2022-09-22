@@ -2,13 +2,15 @@
 
 This is a containerised exporter written in python to collect metrics for Cluster, Hosts, VMs and Storage Containers.
 
-TLDR
+## TLDR
 
 Go in the **build** directory, copy `.env.example` in `.env`, change variables `PRISM`, `PRISM_USERNAME` and `PRISM_SECRET`, and run this:
 
 ```sh
 docker rm nutanix-exporter-1; docker build -t nutanix-prometheus-exporter . &&  docker run --name nutanix-exporter-1 -p 8000:8000 nutanix-prometheus-exporter
 ```
+
+Add `-d` option if you want to launch it in background at the docker run command
 
 It can take some minutes to have some logs.
 
@@ -40,4 +42,4 @@ To access the metrcis server from another machine over IP, allow the port on fir
 
 `systemctl restart firewalld`
 
- You can use `docker logs nutanix-exporter-1` to troubleshoot issues in the container.
+You can use `docker logs nutanix-exporter-1` to troubleshoot issues in the container.
