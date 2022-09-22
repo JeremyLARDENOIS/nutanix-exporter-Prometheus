@@ -1,6 +1,5 @@
-from datetime import datetime
 import time
-from bcolors import bcolors
+import message
 import json
 import requests
 
@@ -68,13 +67,13 @@ def process_request(url, method, user, password, headers, payload=None, secure=F
                 raise Exception("Method not handled")
 
         except requests.exceptions.HTTPError as error_code:
-            print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] Http Error! Status code: {response.status_code}{bcolors.RESET}")
-            print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] reason: {response.reason}{bcolors.RESET}")
-            print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] text: {response.text}{bcolors.RESET}")
-            print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] elapsed: {response.elapsed}{bcolors.RESET}")
-            print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] headers: {response.headers}{bcolors.RESET}")
+            message.error(f"Http Error! Status code: {response.status_code}")
+            message.error(f"reason: {response.reason}")
+            message.error(f"[ERROR] text: {response.text}")
+            message.error(f"ERROR] elapsed: {response.elapsed}")
+            message.error(f"headers: {response.headers}")
             if payload is not None:
-                print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] payload: {payload}{bcolors.RESET}")
+                message.error(f"payload: {payload}")
             print(json.dumps(
                 json.loads(response.content),
                 indent=4
@@ -82,46 +81,46 @@ def process_request(url, method, user, password, headers, payload=None, secure=F
             exit(response.status_code)
         except requests.exceptions.ConnectionError as error_code:
             if retries == 1:
-                print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] {type(error_code).__name__} {str(error_code)} {bcolors.RESET}")
+                message.error(f"{type(error_code).__name__} {str(error_code)} ")
                 exit(1)
             else:
-                print(f"{bcolors.WARNING}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [WARNING] {type(error_code).__name__} {str(error_code)} {bcolors.RESET}")
+                message.warning(f"{type(error_code).__name__} {str(error_code)} ")
                 time.sleep(sleep_between_retries)
                 retries -= 1
-                print(f"{bcolors.WARNING}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [WARNING] Retries left: {retries}{bcolors.RESET}")
+                message.warning(f"Retries left: {retries}")
                 continue
         except requests.exceptions.Timeout as error_code:
             if retries == 1:
-                print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] {type(error_code).__name__} {str(error_code)} {bcolors.RESET}")
+                message.error(f"{type(error_code).__name__} {str(error_code)} ")
                 exit(1)
             else:
-                print(f"{bcolors.WARNING}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [WARNING] {type(error_code).__name__} {str(error_code)} {bcolors.RESET}")
+                message.warning(f"{type(error_code).__name__} {str(error_code)} ")
                 time.sleep(sleep_between_retries)
                 retries -= 1
-                print(f"{bcolors.WARNING}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [WARNING] Retries left: {retries}{bcolors.RESET}")
+                message.warning(f"Retries left: {retries}")
                 continue
         except requests.exceptions.RequestException as error_code:
-            print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] {response.status_code} {bcolors.RESET}")
+            message.error(f"{response.status_code} ")
             exit(response.status_code)
         break
 
     if response.ok:
         return response
     if response.status_code == 401:
-        print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] {response.status_code} {response.reason} {bcolors.RESET}")
+        message.error(f"{response.status_code} {response.reason} ")
         exit(response.status_code)
     elif response.status_code == 500:
-        print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [ERROR] {response.status_code} {response.reason} {response.text} {bcolors.RESET}")
+        message.error(f"{response.status_code} {response.reason} {response.text} ")
         exit(response.status_code)
     else:
-        print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [ERROR] Request failed! Status code: {response.status_code}{bcolors.RESET}")
-        print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [ERROR] reason: {response.reason}{bcolors.RESET}")
-        print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [ERROR] text: {response.text}{bcolors.RESET}")
-        print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [ERROR] raise_for_status: {response.raise_for_status()}{bcolors.RESET}")
-        print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [ERROR] elapsed: {response.elapsed}{bcolors.RESET}")
-        print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [ERROR] headers: {response.headers}{bcolors.RESET}")
+        message.error(f"Request failed! Status code: {response.status_code}")
+        message.error(f"reason: {response.reason}")
+        message.error(f"text: {response.text}")
+        message.error(f"raise_for_status: {response.raise_for_status()}")
+        message.error(f"elapsed: {response.elapsed}")
+        message.error(f"headers: {response.headers}")
         if payload is not None:
-            print(f"{bcolors.FAIL}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [ERROR] payload: {payload}{bcolors.RESET}")
+            message.error(f"payload: {payload}")
         print(json.dumps(
             json.loads(response.content),
             indent=4

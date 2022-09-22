@@ -1,9 +1,8 @@
 import json
 import time
-from datetime import datetime
-from bcolors import bcolors
+import message
 from prismGetData import prism_get
-from prometheus_client import start_http_server, Gauge, Info
+from prometheus_client import Gauge, Info
 from process_request import process_request
 
 class NutanixMetrics:
@@ -32,16 +31,16 @@ class NutanixMetrics:
             
     def run_metrics_loop(self):
         """Metrics fetching loop"""
-        print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Starting metrics loop {bcolors.RESET}")
+        message.ok("Starting metrics loop")
         while True:
             self.fetch()
-            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Waiting for {self.polling_interval_seconds} seconds...{bcolors.RESET}")
+            message.ok(f"Waiting for {self.polling_interval_seconds} seconds...")
             time.sleep(self.polling_interval_seconds)
 
     def _init_fetch(self):
         '''Get the main value, needed to use before self.fetch()'''
 
-        print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [INFO] Initializing metrics for clusters...{bcolors.RESET}")
+        message.ok("Initializing metrics for clusters...")
         
         api_server_endpoint = "/PrismGateway/services/rest/v2.0/clusters/"
         cluster_details = prism_get(
@@ -68,7 +67,7 @@ class NutanixMetrics:
         setattr(self, 'NutanixClusters_info', Info('is_lts', 'Long Term Support AOS true/false', ['cluster']))
 
         if self.vm_metrics:
-            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [INFO] Initializing metrics for virtual machines...{bcolors.RESET}")
+            message.ok("Initializing metrics for virtual machines...")
 
             # Prepare for GET Vms counts 
             key_string = "NutanixVms_count"
@@ -95,7 +94,7 @@ class NutanixMetrics:
                 setattr(self, key_string, Gauge(key_string, key_string, ['vm']))
 
         if self.host_metrics:
-            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [INFO] Initializing metrics for Hosts...{bcolors.RESET}")
+            message.ok("Initializing metrics for Hosts...")
 
             # Get hostnames on api v3
             key_string="NutanixHosts_count_vms"
@@ -122,7 +121,7 @@ class NutanixMetrics:
                 setattr(self, key_string, Gauge(key_string, key_string, ['host']))
 
         if self.storage_containers_metrics:
-            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d_%H:%M:%S')} [INFO] Initializing metrics for storage containers...{bcolors.RESET}")
+            message.ok("Initializing metrics for storage containers...")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/storage_containers/"
             storage_containers_details = prism_get(
                 api_server=self.prism,
@@ -150,7 +149,7 @@ class NutanixMetrics:
         """
 
         if self.cluster_metrics:
-            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Collecting clusters metrics{bcolors.RESET}")
+            message.ok("Collecting clusters metrics")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/clusters/"
             cluster_details = prism_get(
                 api_server=self.prism,
@@ -195,7 +194,7 @@ class NutanixMetrics:
                 secret=self.pwd,
                 secure=self.prism_secure)["entities"]
             # vm_details = prism_get_vm(api_server=self.prism,username=self.user,secret=self.pwd,secure=self.prism_secure)
-            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Collecting vm metrics for {bcolors.RESET}")
+            message.ok("Collecting vm metrics for")
             for entity in vm_details:
                 for key, value in entity['stats'].items():
                     #making sure we are compliant with the data model (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels)
@@ -211,7 +210,7 @@ class NutanixMetrics:
                     self.__dict__[key_string].labels(vm=entity['vmName']).set(value)
                     
         if self.host_metrics:
-            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Collecting Host metrics for {bcolors.RESET}")
+            message.ok("Collecting Host metrics for")
 
             # GET on API V3
             url = f"https://{self.prism}:{self.app_port}/api/nutanix/v3/hosts/list"
@@ -250,7 +249,7 @@ class NutanixMetrics:
                     self.__dict__[key_string].labels(host=entity['name']).set(value)
 
         if self.storage_containers_metrics:
-            print(f"{bcolors.OK}{(datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} [INFO] Collecting storage containers metrics{bcolors.RESET}")
+            message.ok("Collecting storage containers metrics")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/storage_containers/"
             storage_containers_details = prism_get(
                 api_server=self.prism,
