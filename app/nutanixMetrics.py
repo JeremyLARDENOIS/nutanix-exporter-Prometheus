@@ -10,10 +10,10 @@ class NutanixMetrics:
     Representation of Prometheus metrics and loop to fetch and transform
     application metrics into Prometheus metrics.
     """
-    def __init__(self, app_port=9440, polling_interval_seconds=5, prism='127.0.0.1', user='admin', pwd='Nutanix/4u', prism_secure=False, vm_metrics=True, host_metrics=True, cluster_metrics=True, storage_containers_metrics=True):
-        self.app_port = app_port
+    def __init__(self, host_prism='127.0.0.1:9440', app_port=9440, polling_interval_seconds=5, prism='127.0.0.1', user='admin', pwd='Nutanix/4u', prism_secure=False, vm_metrics=True, host_metrics=True, cluster_metrics=True, storage_containers_metrics=True):
+        # self.host_prism = f"{prism}:{app_port}"
+        self.host_prism = host_prism
         self.polling_interval_seconds = polling_interval_seconds
-        self.prism = prism
         self.user = user
         self.pwd = pwd
         self.prism_secure = prism_secure
@@ -44,7 +44,7 @@ class NutanixMetrics:
         
         api_server_endpoint = "/PrismGateway/services/rest/v2.0/clusters/"
         cluster_details = prism_get(
-            api_server=self.prism,
+            api_server=self.host_prism,
             api_server_endpoint=api_server_endpoint,
             username=self.user,
             secret=self.pwd,
@@ -75,7 +75,7 @@ class NutanixMetrics:
 
             api_server_endpoint = "/PrismGateway/services/rest/v1/vms"
             vm_details = prism_get(
-                api_server=self.prism,
+                api_server=self.host_prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
@@ -102,7 +102,7 @@ class NutanixMetrics:
 
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/hosts"
             host_details = prism_get(
-                api_server=self.prism,
+                api_server=self.host_prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
@@ -124,7 +124,7 @@ class NutanixMetrics:
             message.ok("Initializing metrics for storage containers...")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/storage_containers/"
             storage_containers_details = prism_get(
-                api_server=self.prism,
+                api_server=self.host_prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
@@ -152,7 +152,7 @@ class NutanixMetrics:
             message.ok("Collecting clusters metrics")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/clusters/"
             cluster_details = prism_get(
-                api_server=self.prism,
+                api_server=self.host_prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
@@ -177,7 +177,7 @@ class NutanixMetrics:
         if self.vm_metrics:
             # TODO: Refactor this
             # Get the number of VM
-            url = f"https://{self.prism}:{self.app_port}/api/nutanix/v3/vms/list"
+            url = f"https://{self.host_prism}/api/nutanix/v3/vms/list"
             resp = process_request(url=url, method="POST", user=self.user, password=self.pwd, payload={"kind":"vm"}, headers=self.headers, secure=self.prism_secure)
             if resp.ok:
                 resp_json = json.loads(resp.content)
@@ -188,12 +188,11 @@ class NutanixMetrics:
 
             api_server_endpoint = "/PrismGateway/services/rest/v1/vms"
             vm_details = prism_get(
-                api_server=self.prism,
+                api_server=self.host_prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
                 secure=self.prism_secure)["entities"]
-            # vm_details = prism_get_vm(api_server=self.prism,username=self.user,secret=self.pwd,secure=self.prism_secure)
             message.ok("Collecting vm metrics for")
             for entity in vm_details:
                 for key, value in entity['stats'].items():
@@ -213,7 +212,7 @@ class NutanixMetrics:
             message.ok("Collecting Host metrics for")
 
             # GET on API V3
-            url = f"https://{self.prism}:{self.app_port}/api/nutanix/v3/hosts/list"
+            url = f"https://{self.host_prism}/api/nutanix/v3/hosts/list"
             resp = process_request(url=url, method="POST", user=self.user, password=self.pwd, payload={}, headers=self.headers, secure=self.prism_secure)
             if resp.ok:
                 resp_json = json.loads(resp.content)
@@ -228,7 +227,7 @@ class NutanixMetrics:
 
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/hosts"
             host_details = prism_get(
-                api_server=self.prism,
+                api_server=self.host_prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,
@@ -252,7 +251,7 @@ class NutanixMetrics:
             message.ok("Collecting storage containers metrics")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/storage_containers/"
             storage_containers_details = prism_get(
-                api_server=self.prism,
+                api_server=self.host_prism,
                 api_server_endpoint=api_server_endpoint,
                 username=self.user,
                 secret=self.pwd,

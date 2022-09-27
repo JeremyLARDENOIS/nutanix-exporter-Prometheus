@@ -1,7 +1,6 @@
 import message
 from process_request import process_request
 import json
-import os
 
 def prism_get(api_server, api_server_endpoint, username, secret, secure=False):
     """Retrieves data from the Prism Element endpoint chosen
@@ -19,10 +18,8 @@ def prism_get(api_server, api_server_endpoint, username, secret, secure=False):
     'Content-Type': 'application/json',
     'Accept': 'application/json'
     }
-    api_server_port = int(os.getenv("APP_PORT", "9440"))
-    url = "https://{}:{}{}".format(
+    url = "https://{}{}".format(
         api_server,
-        api_server_port,
         api_server_endpoint
     )
     method = "GET"

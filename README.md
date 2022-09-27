@@ -4,14 +4,10 @@ This is a containerised exporter written in python to collect metrics for Cluste
 
 ## TLDR
 
-```sh
-cp app/.env.example app/.env
-```
-
-Edit **app/.env**
+Execute this command line
 
 ```sh
-. bin/activate ; python3 app/main.py > /dev/null &
+. bin/activate ; ./bin/python3 app/main.py > /dev/null &
 ```
 
 ## With Python Venv
@@ -22,18 +18,22 @@ In the root of the repository, activate the virtual env:
 . bin/activate
 ```
 
-Go in the **app** directory, copy `.env.example` in `.env`, change variables `PRISM`, `PRISM_USERNAME` and `PRISM_SECRET`
-
 To launch the app, do:
 
 ```sh
-python3 app/main.py
+./bin/python3 app/main.py
 ```
 
-You can launch the app in backgroud doing:
+You can launch the app in background doing:
 
 ```sh
-python3 app/main.py > /dev/null &
+./bin/python3 app/main.py > /dev/null &
+```
+
+You can have some help about the argumets that you can pass with the command
+
+```sh
+./bin/python3 app/main.py --help
 ```
 
 If you want exit the virtual env, you can type `deactivate` in the shell.
@@ -42,7 +42,7 @@ If you want exit the virtual env, you can type `deactivate` in the shell.
 
 ### TLDR, but with docker
 
-Go in the **app** directory, copy `.env.example` in `.env`, change variables `PRISM`, `PRISM_USERNAME` and `PRISM_SECRET`, and run this:
+Go in the **app** directory and run this:
 
 ```sh
 docker rm nutanix-exporter-1; docker build -t nutanix-prometheus-exporter . &&  docker run --name nutanix-exporter-1 -p 8000:8000 nutanix-prometheus-exporter
@@ -54,15 +54,7 @@ It can take some minutes to have some logs.
 
 ### Building the container
 
-Available environment variables are listed in the `.env.example` file in the **app** directory.
-
-You can copy this file in .env in the **app** directory:
-
-`cp .env.example .env`
-
-Please, edit variables `PRISM`, `PRISM_USERNAME` and `PRISM_SECRET`.
-
-From the **build** directory, run:
+From the **app** directory, run:
 
 `docker build -t nutanix-prometheus-exporter .`
 
