@@ -25,7 +25,7 @@ def prism_get(api_server, api_server_endpoint, username, secret, secure=False):
     method = "GET"
     #endregion
 
-    message.ok(f"Making a {method} API call to {url} with secure set to {secure}")
+    message.info(f"Making a {method} API call to {url} with secure set to {secure}")
     resp = process_request(url, method, username, secret, headers, secure=secure)
 
     # deal with the result/response

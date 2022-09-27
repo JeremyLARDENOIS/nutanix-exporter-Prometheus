@@ -28,19 +28,20 @@ class NutanixMetrics:
         self.hosts = []
 
         self._init_fetch()
+        message.success("Nutanix Metrics initialized")
             
     def run_metrics_loop(self):
         """Metrics fetching loop"""
-        message.ok("Starting metrics loop")
+        message.info("Starting metrics loop")
         while True:
             self.fetch()
-            message.ok(f"Waiting for {self.polling_interval_seconds} seconds...")
+            message.info(f"Waiting for {self.polling_interval_seconds} seconds...")
             time.sleep(self.polling_interval_seconds)
 
     def _init_fetch(self):
         '''Get the main value, needed to use before self.fetch()'''
 
-        message.ok("Initializing metrics for clusters...")
+        message.info("Initializing metrics for clusters...")
         
         api_server_endpoint = "/PrismGateway/services/rest/v2.0/clusters/"
         cluster_details = prism_get(
@@ -67,7 +68,7 @@ class NutanixMetrics:
         setattr(self, 'NutanixClusters_info', Info('is_lts', 'Long Term Support AOS true/false', ['cluster']))
 
         if self.vm_metrics:
-            message.ok("Initializing metrics for virtual machines...")
+            message.info("Initializing metrics for virtual machines...")
 
             # Prepare for GET Vms counts 
             key_string = "NutanixVms_count"
@@ -94,7 +95,7 @@ class NutanixMetrics:
                 setattr(self, key_string, Gauge(key_string, key_string, ['vm']))
 
         if self.host_metrics:
-            message.ok("Initializing metrics for Hosts...")
+            message.info("Initializing metrics for Hosts...")
 
             # Get hostnames on api v3
             key_string="NutanixHosts_count_vms"
@@ -121,7 +122,7 @@ class NutanixMetrics:
                 setattr(self, key_string, Gauge(key_string, key_string, ['host']))
 
         if self.storage_containers_metrics:
-            message.ok("Initializing metrics for storage containers...")
+            message.info("Initializing metrics for storage containers...")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/storage_containers/"
             storage_containers_details = prism_get(
                 api_server=self.host_prism,
@@ -149,7 +150,7 @@ class NutanixMetrics:
         """
 
         if self.cluster_metrics:
-            message.ok("Collecting clusters metrics")
+            message.info("Collecting clusters metrics")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/clusters/"
             cluster_details = prism_get(
                 api_server=self.host_prism,
@@ -193,7 +194,7 @@ class NutanixMetrics:
                 username=self.user,
                 secret=self.pwd,
                 secure=self.prism_secure)["entities"]
-            message.ok("Collecting vm metrics for")
+            message.info("Collecting vm metrics for")
             for entity in vm_details:
                 for key, value in entity['stats'].items():
                     #making sure we are compliant with the data model (https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels)
@@ -209,7 +210,7 @@ class NutanixMetrics:
                     self.__dict__[key_string].labels(vm=entity['vmName']).set(value)
                     
         if self.host_metrics:
-            message.ok("Collecting Host metrics for")
+            message.info("Collecting Host metrics for")
 
             # GET on API V3
             url = f"https://{self.host_prism}/api/nutanix/v3/hosts/list"
@@ -248,7 +249,7 @@ class NutanixMetrics:
                     self.__dict__[key_string].labels(host=entity['name']).set(value)
 
         if self.storage_containers_metrics:
-            message.ok("Collecting storage containers metrics")
+            message.info("Collecting storage containers metrics")
             api_server_endpoint = "/PrismGateway/services/rest/v2.0/storage_containers/"
             storage_containers_details = prism_get(
                 api_server=self.host_prism,
@@ -269,3 +270,4 @@ class NutanixMetrics:
                     key_string = key_string.replace(".","_")
                     key_string = key_string.replace("-","_")
                     self.__dict__[key_string].labels(storage_container=container['name']).set(value)
+        message.success("All data has been received")

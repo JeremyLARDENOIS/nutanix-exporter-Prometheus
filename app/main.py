@@ -22,7 +22,7 @@ def main():
     password= args.password if args.password else getpass.getpass() 
 
     # Prepare for get nutanix data
-    message.ok("Initializing metrics class...")
+    message.info("Initializing metrics class...")
     nutanix_metrics = NutanixMetrics(
         host_prism=args.host_prism,
         polling_interval_seconds=args.polling_interval,
@@ -32,7 +32,7 @@ def main():
     )
     
     # Get Nutanix Data and expose them to prometheus format
-    message.ok(f"Starting http server on http://localhost:{args.exporter_port}")
+    message.info(f"Starting http server on http://localhost:{args.exporter_port}")
     start_http_server(args.exporter_port)
     nutanix_metrics.run_metrics_loop() # Is there a way to close this gracefully?
 
